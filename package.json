@@ -1,0 +1,23 @@
+{
+  "name": "rafting",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "nyc --reporter=html --reporter=text mocha state-machine/*.test.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "koa": "^2.6.1",
+    "koa-bodyparser": "^4.2.1",
+    "koa-route": "^3.2.0",
+    "request": "^2.88.0",
+    "request-promise-native": "^1.0.5"
+  },
+  "devDependencies": {
+    "mocha": "^5.2.0",
+    "nyc": "^13.1.0",
+    "testdouble": "^3.9.0"
+  }
+}
