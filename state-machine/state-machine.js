@@ -28,12 +28,12 @@ Object.freeze(roles);
 
 class RaftStateMachine {
     constructor({ nodeId }) {
-        if (nodeId == undefined ) {
+        if (nodeId == undefined) {
             throw new Error('nodeId and peers must be defined, peers must be an array');
         }
 
         this.state = { ...emptyState, peers: new Set(), nodeId };
-        this.alreadyVotedInThisTerm = false
+        this.alreadyVotedInThisTerm = false;
         this.resetLeaderTimeout();
     }
 
@@ -215,10 +215,9 @@ class RemoteRaftStateMachine {
 }
 
 module.exports = {
-    RaftStateMachine,
-    LocalRaftStateMachine,
-    RemoteRaftStateMachine,
-    roles,
-    config,
-    logger,
+  RaftStateMachine,
+  LocalRaftStateMachine,
+  RemoteRaftStateMachine,
+  roles,
+  config,
 }
