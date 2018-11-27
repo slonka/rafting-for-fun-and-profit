@@ -51,12 +51,13 @@ class RaftStateMachine {
 
     transitionToFolower() {
         this.state.role = roles.follower;
+        this.state.votesGranted = null;
         this.resetLeaderTimeout();
         clearTimeout(this.heartbeatTimeout);
     }
 
     async transitionToCandidate() {
-        if (this.leaderTimedOut() && this.state.role === roles.follower) {
+        if (this.leaderTimedOut() && this.state.role !== roles.leader) {
             this.state.role = roles.candidate;
             this.state.currentTerm += 1;
             this.state.alreadyVotedInThisTerm = true;

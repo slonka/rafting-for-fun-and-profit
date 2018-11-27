@@ -44,6 +44,14 @@ function getCluster() {
     }
 }
 
+function getStateMachineWithPeers() {
+    const raftStateMachine = new LocalRaftStateMachine({nodeId: 'host:port'});
+    raftStateMachine.addPeer(new LocalRaftStateMachine({nodeId: 'host2:port2'}));
+    raftStateMachine.addPeer(new LocalRaftStateMachine({nodeId: 'host3:port3'}));
+
+    return raftStateMachine;
+}
+
 describe('state machine', function() {
     it('should start with initial state', function() {
         // given
@@ -83,9 +91,8 @@ describe('state machine', function() {
     describe('starting voting', function() {
         it('should transition from candidate to leader when recived majority of votes', async function() {
             // given
-            const raftStateMachine = new LocalRaftStateMachine({nodeId: 'host:port'});
-            raftStateMachine.addPeer(new LocalRaftStateMachine({nodeId: 'host2:port2'}));
-            raftStateMachine.addPeer(new LocalRaftStateMachine({nodeId: 'host3:port3'}));
+            const raftStateMachine = getStateMachineWithPeers();
+
             td.replace(raftStateMachine, 'getVotes', td.when(td.function()()).thenResolve([positiveVote, positiveVote, negativeVote]));
             td.replace(raftStateMachine, 'sendAllHeartbeats', td.function());
 
@@ -99,9 +106,7 @@ describe('state machine', function() {
 
         it('should not transition from candidate to leader when recived less than majority of votes', async function() {
             // given
-            const raftStateMachine = new LocalRaftStateMachine({nodeId: 'host:port'});
-            raftStateMachine.addPeer(new LocalRaftStateMachine({nodeId: 'host2:port2'}));
-            raftStateMachine.addPeer(new LocalRaftStateMachine({nodeId: 'host3:port3'}));
+            const raftStateMachine = getStateMachineWithPeers();
             td.replace(raftStateMachine, 'getVotes', td.when(td.function()()).thenResolve([positiveVote, negativeVote, negativeVote]));
             td.replace(raftStateMachine, 'sendAllHeartbeats', td.function());
 
@@ -140,9 +145,7 @@ describe('state machine', function() {
 
     it('should become candidate when it does not get heartbeat from a leader for a long time', async function() {
         // given
-        const raftStateMachine = new LocalRaftStateMachine({nodeId: 'host:port'});
-        raftStateMachine.addPeer(new LocalRaftStateMachine({nodeId: 'host2:port2'}));
-        raftStateMachine.addPeer(new LocalRaftStateMachine({nodeId: 'host3:port3'}));
+        const raftStateMachine = getStateMachineWithPeers();
         td.replace(raftStateMachine, 'getVotes', td.when(td.function()()).thenResolve([positiveVote, negativeVote, negativeVote]));
         td.replace(raftStateMachine, 'sendAllHeartbeats', td.function());
 
@@ -151,6 +154,21 @@ describe('state machine', function() {
 
         // then
         assert.equal(raftStateMachine.state.role, roles.candidate);
+    });
+
+    it('should start a second voting when first vote is unsuccessful', async function() {
+        // given
+        const raftStateMachine = getStateMachineWithPeers();
+        td.replace(raftStateMachine, 'getVotes', td.when(td.function()()).thenResolve([positiveVote, negativeVote, negativeVote]));
+        td.replace(raftStateMachine, 'sendAllHeartbeats', td.function());
+
+        // when
+        raftStateMachine.transitionToCandidate();
+        await sleep(15);
+
+        // then
+        assert.equal(raftStateMachine.state.role, roles.candidate);
+        assert.equal(raftStateMachine.state.currentTerm, 2);
     });
 
     it('should cast a vote when not voted in this term', async function() {
