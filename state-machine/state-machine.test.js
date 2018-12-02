@@ -202,7 +202,6 @@ describe('state machine', function() {
 
         // when
         await sleep(50);
-        debugger;
 
         const leader = [machine1, machine2, machine3].filter(machine => machine.state.role === roles.leader);
         const followers = [machine1, machine2, machine3].filter(machine => machine.state.role === roles.follower);
