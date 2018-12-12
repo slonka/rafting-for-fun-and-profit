@@ -87,7 +87,7 @@ class RaftStateMachine {
                 return e;
             })));
 
-            this.heartbeatTimeout = setTimeout(this.sendAllHeartbeats.bind(this), config.heartbeatInterval).unref();
+            this.heartbeatTimeout = setTimeout(this.sendAllHeartbeats.bind(this), config.heartbeatInterval);
         }
     }
 
@@ -121,7 +121,7 @@ class RaftStateMachine {
 
     resetLeaderTimeout() {
         clearTimeout(this.leaderTimeout);
-        this.leaderTimeout = setTimeout(this.transitionToCandidate.bind(this), config.leaderTimeout + (Math.random() * config.leaderTimeoutRandWindow)).unref();
+        this.leaderTimeout = setTimeout(this.transitionToCandidate.bind(this), config.leaderTimeout + (Math.random() * config.leaderTimeoutRandWindow));
     }
 
     async getVotes() {

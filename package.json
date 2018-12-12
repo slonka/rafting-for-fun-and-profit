@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "nyc --reporter=html --reporter=text mocha state-machine/*.test.js"
+    "test": "jest --coverage"
   },
   "author": "",
   "license": "ISC",
@@ -16,6 +16,7 @@
     "request-promise-native": "^1.0.5"
   },
   "devDependencies": {
+    "jest": "^23.6.0",
     "mocha": "^5.2.0",
     "nyc": "^13.1.0",
     "testdouble": "^3.9.0"
