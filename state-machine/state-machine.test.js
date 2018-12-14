@@ -1,5 +1,7 @@
 'use strict';
 
+jest.useFakeTimers();
+
 const { LocalRaftStateMachine, roles, config } = require('./state-machine');
 const assert = require('assert');
 const td = require('testdouble');
@@ -18,12 +20,6 @@ const initialState = {
     votedFor: null,
     votesGranted: 0,
 }
-
-// overwrite config for tests
-config.leaderTimeout = 10;
-config.leaderTimeoutRandWindow = 3;
-config.heartbeatInterval = 8;
-config.requestTimeout = 5;
 
 const positiveVote = {voteGranted: true, term: 1};
 const negativeVote = {voteGranted: false, term: 1};
@@ -74,7 +70,7 @@ test('should not transition to leader when can not get majority', async function
     const raftStateMachine = new LocalRaftStateMachine({nodeId: 'host:port'});
 
     // when
-    await sleep(35);
+    jest.runOnlyPendingTimers();
 
     // then
     assert.equal(raftStateMachine.state.role, roles.candidate);
@@ -87,42 +83,40 @@ test('should transition to candidate role when it did not receive a heartbeat', 
     const prevTerm = raftStateMachine.state.currentTerm;
 
     // when
-    await sleep(15);
+    jest.runOnlyPendingTimers();
 
     // then
     assert.equal(raftStateMachine.state.role, roles.candidate);
     assert.equal(raftStateMachine.state.currentTerm, prevTerm + 1);
 });
 
-describe('starting voting', function() {
-    test('should transition from candidate to leader when recived majority of votes', async function() {
-        // given
-        const raftStateMachine = getStateMachineWithPeers();
+test('should transition from candidate to leader when recived majority of votes', async function() {
+    // given
+    const raftStateMachine = getStateMachineWithPeers();
 
-        td.replace(raftStateMachine, 'getVotes', td.when(td.function()()).thenResolve([positiveVote, positiveVote, negativeVote]));
-        td.replace(raftStateMachine, 'sendAllHeartbeats', td.function());
+    td.replace(raftStateMachine, 'getVotes', td.when(td.function()()).thenResolve([positiveVote, positiveVote, negativeVote]));
+    td.replace(raftStateMachine, 'sendAllHeartbeats', td.function());
 
-        // when
-        await raftStateMachine.transitionToCandidate();
+    // when
+    await raftStateMachine.transitionToCandidate();
 
-        // then
-        assert.equal(raftStateMachine.state.role, roles.leader);
-        assert.equal(raftStateMachine.state.currentTerm, 2);
-    });
+    // then
+    assert.equal(raftStateMachine.state.role, roles.leader);
+    assert.equal(raftStateMachine.state.currentTerm, 2);
+});
 
-    test('should not transition from candidate to leader when recived less than majority of votes', async function() {
-        // given
-        const raftStateMachine = getStateMachineWithPeers();
-        td.replace(raftStateMachine, 'getVotes', td.when(td.function()()).thenResolve([positiveVote, negativeVote, negativeVote]));
-        td.replace(raftStateMachine, 'sendAllHeartbeats', td.function());
+test('should not transition from candidate to leader when recived less than majority of votes', async function() {
+    // given
+    const raftStateMachine = getStateMachineWithPeers();
+    td.replace(raftStateMachine, 'getVotes', td.when(td.function()()).thenResolve([positiveVote, negativeVote, negativeVote]));
+    td.replace(raftStateMachine, 'sendAllHeartbeats', td.function());
 
-        // when
-        await raftStateMachine.transitionToCandidate();
+    // when
+    await raftStateMachine.transitionToCandidate();
 
-        // then
-        assert.equal(raftStateMachine.state.role, roles.candidate);
-        assert.equal(raftStateMachine.state.currentTerm, 1);
-    });
+    // then
+    assert.equal(raftStateMachine.state.role, roles.candidate);
+    assert.equal(raftStateMachine.state.currentTerm, 1);
 });
 
 test('should send heartbeats when leader', function() {
@@ -156,7 +150,7 @@ test('should become candidate when it does not get heartbeat from a leader for a
     td.replace(raftStateMachine, 'sendAllHeartbeats', td.function());
 
     // when
-    await sleep(15);
+    jest.runOnlyPendingTimers();
 
     // then
     assert.equal(raftStateMachine.state.role, roles.candidate);
@@ -170,7 +164,7 @@ test('should start a second voting when first vote is unsuccessful', async funct
 
     // when
     raftStateMachine.transitionToCandidate();
-    await sleep(15);
+    jest.runOnlyPendingTimers();
 
     // then
     assert.equal(raftStateMachine.state.role, roles.candidate);
@@ -207,8 +201,9 @@ test('should elect a leader', async function() {
     const {machine1, machine2, machine3} = getCluster();
 
     // when
-    await sleep(50);
-    debugger;
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
+    await advanceMicroTasks();
 
     const leader = [machine1, machine2, machine3].filter(machine => machine.state.role === roles.leader);
     const followers = [machine1, machine2, machine3].filter(machine => machine.state.role === roles.follower);
@@ -220,3 +215,7 @@ test('should elect a leader', async function() {
     assert.equal(followers[0].state.role, roles.follower);
     assert.equal(followers[1].state.role, roles.follower);
 });
+
+async function advanceMicroTasks() {
+    await sleep(1);
+}
