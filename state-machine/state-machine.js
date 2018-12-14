@@ -49,7 +49,7 @@ class RaftStateMachine {
         this.state.peers.add(peer)
     }
 
-    transitionToFolower() {
+    transitionToFollower() {
         this.state.role = roles.follower;
         this.state.votesGranted = null;
         this.resetLeaderTimeout();
@@ -102,7 +102,7 @@ class RaftStateMachine {
         if (message.term >= this.state.currentTerm) {
             this.state.currentTerm = message.term;
             this.state.alreadyVotedInThisTerm = false;
-            this.transitionToFolower();
+            this.transitionToFollower();
         }
     }
 
@@ -114,9 +114,9 @@ class RaftStateMachine {
     }
 
     countPositiveVotes(votes) {
-        return votes.filter(vote => vote)
-            .map(vote => vote.voteGranted === true && vote.term === this.state.currentTerm)
-            .reduce((prev, current) => prev + (current === true ? 1 : 0), 0);
+      return votes
+        .filter(vote => vote.voteGranted === true && vote.term === this.state.currentTerm)
+        .length
     }
 
     resetLeaderTimeout() {
@@ -125,15 +125,14 @@ class RaftStateMachine {
     }
 
     async getVotes() {
-        const responses = Array.from(this.state.peers).map(p => {
-            return p.getVote({
-                term: this.state.currentTerm,
-                candidateId: this.state.nodeId
-            });
-        });
+      const responses = Array.from(this.state.peers).map(p => {
+          return p.getVote({
+              term: this.state.currentTerm,
+              candidateId: this.state.nodeId
+          });
+      });
 
-        return (await Promise.all(responses.map(p => p.catch(e => e))))
-            .map(response => response.body ? response.body : undefined);
+      return Promise.all(responses);
     }
 
     async getVote() {
@@ -177,15 +176,11 @@ class LocalRaftStateMachine extends RaftStateMachine {
     }
 
     async sendHeartbeat(heartbeat) {
-        return Promise.resolve({
-            body: this.receiveHeartbeat(heartbeat)
-        });
+        return Promise.resolve(this.receiveHeartbeat(heartbeat));
     }
 
     async getVote(vote) {
-        return Promise.resolve({
-            body: this.voteRequested(vote)
-        });
+        return Promise.resolve(this.voteRequested(vote));
     }
 }
 
@@ -206,12 +201,18 @@ class RemoteRaftStateMachine {
     }
 
     async getVote(vote) {
-        return request.post({
+      try {
+        const response = await request.post({
             url: `http://${this.state.nodeId}/raft/request-vote`,
             json: vote,
             timeout: config.requestTimeout,
             resolveWithFullResponse: true
         });
+        return response.body;
+      } catch (e) {
+        logger.error(`Remote call to ${this.state.nodeId} failed`);
+        return {voteGranted: false, term: this.state.currentTerm};
+      }
     }
 }
 
