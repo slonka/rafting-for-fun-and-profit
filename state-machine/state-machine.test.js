@@ -90,7 +90,7 @@ test('should transition to candidate role when it did not receive a heartbeat', 
     assert.equal(raftStateMachine.state.currentTerm, prevTerm + 1);
 });
 
-test('should transition from candidate to leader when recived majority of votes', async function() {
+test('should transition from candidate to leader when received majority of votes', async function() {
     // given
     const raftStateMachine = getStateMachineWithPeers();
 
@@ -105,7 +105,7 @@ test('should transition from candidate to leader when recived majority of votes'
     assert.equal(raftStateMachine.state.currentTerm, 2);
 });
 
-test('should not transition from candidate to leader when recived less than majority of votes', async function() {
+test('should not transition from candidate to leader when received less than majority of votes', async function() {
     // given
     const raftStateMachine = getStateMachineWithPeers();
     td.replace(raftStateMachine, 'getVotes', td.when(td.function()()).thenResolve([positiveVote, negativeVote, negativeVote]));
